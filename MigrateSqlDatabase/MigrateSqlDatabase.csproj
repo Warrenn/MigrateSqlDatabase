@@ -78,6 +78,6 @@
     <PostBuildEvent>"$(SolutionDir)\packages\ilmerge.2.14.1208\tools\ILMerge.exe" /out:"$(TargetDir)$(TargetName)_all.exe" "$(TargetDir)$(TargetName).exe" "$(TargetDir)*.dll" /target:exe /allowDup /wildcards
 del "$(TargetDir)$(TargetName).exe"
 rename "$(TargetDir)$(TargetName)_all.exe" "$(TargetName).exe"
-nuget pack $(ProjectPath) -Tool -IncludeReferencedProjects</PostBuildEvent>
+"$(SolutionDir)\packages\NuGet.CommandLine.4.1.0\tools\nuget.exe" pack $(ProjectPath) -Tool -IncludeReferencedProjects</PostBuildEvent>
   </PropertyGroup>
 </Project>
