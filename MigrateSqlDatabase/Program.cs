@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data.Entity;
 using System.IO;
 using System.Linq;
@@ -26,20 +27,22 @@ namespace MigrateSqlDatabase
                 Environment.Exit(-1);
             }
 
-            if (string.IsNullOrEmpty(options.Libary) ||
-                !File.Exists(options.Libary))
+            Configuration config;
+
+            if (string.IsNullOrEmpty(options.ConfigFile) || !File.Exists(options.ConfigFile))
             {
-                var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-                foreach (var assemblyFile in Directory.GetFiles(currentDirectory, "*.dll"))
-                {
-                    MigrateAssembly(assemblyFile, options.ConnectionString);
-                }
-                Console.WriteLine("Migration Complete");
-                Environment.Exit(0);
+                Console.WriteLine($"Warning the config file {options.ConfigFile} is invalid loading file from library");
+                config = ConfigurationManager.OpenExeConfiguration(options.Libary);
             }
+            else
+            {
+                config = ConfigurationManager.OpenExeConfiguration(options.ConfigFile);
+            }
+            
+            config.SaveAs(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+            ConfigurationManager.RefreshSection("connectionStrings");
 
-            MigrateAssembly(options.Libary, options.ConnectionString);
+            MigrateAssembly(options.Libary);
             Console.WriteLine("Migration Complete");
             Environment.Exit(0);
         }
@@ -67,14 +70,16 @@ namespace MigrateSqlDatabase
                 new MigrateDatabaseToLatestVersion<T, AutomaticMigrationsExistingDbConfiguration<T>>());
         }
 
-        private static void MigrateAssembly(string assemblyFile, string connectionString)
+        private static void MigrateAssembly(string assemblyFile)
         {
             Console.WriteLine($"Loading assembly {assemblyFile}");
-            AppDomain.CurrentDomain.Load(File.ReadAllBytes(assemblyFile));
+
+            AssemblyResolver.AddAssembly(assemblyFile);
             var assembly = Assembly.LoadFile(assemblyFile);
-            var contextTypes =
-                GetTypes(assembly)
-                    .Where(_ => typeof(DbContext).IsAssignableFrom(_) && _.GetConstructor(Type.EmptyTypes) != null);
+            var contextTypes = GetTypes(assembly)
+                .Where(_ =>
+                    typeof(DbContext).IsAssignableFrom(_) &&
+                    _.GetConstructor(Type.EmptyTypes) != null);
 
             foreach (var type in contextTypes)
             {
@@ -82,10 +87,6 @@ namespace MigrateSqlDatabase
                 SetInitializerGeneric(type);
                 using (var dbContext = (DbContext)Activator.CreateInstance(type))
                 {
-                    if (!string.IsNullOrEmpty(connectionString))
-                    {
-                        dbContext.Database.Connection.ConnectionString = connectionString;
-                    }
                     Console.WriteLine($"Migrating {type.FullName} to {dbContext.Database.Connection.ConnectionString}");
                     dbContext.Database.Initialize(true);
                 }

@@ -5,11 +5,11 @@ namespace MigrateSqlDatabase
 {
     public class Options
     {
-        [Option('l', "Libary", HelpText = "Assembly file to evaluate overrides Folder option")]
+        [Option('l', "library", Required = true, HelpText = "The assembly file that contains the DbContext objects to migrate")]
         public string Libary { get; set; }
 
-        [Option('c', "connection-string", HelpText = "Default connection string of the database to update")]
-        public string ConnectionString { get; set; }
+        [Option('c', "config", HelpText = "The configuration file used to get the connection strings for the DbContext objects if this is missing or invalid the default config file will be the library name ending in '.config'")]
+        public string ConfigFile { get; set; }
 
         [HelpOption]
         public string GetUsage()
