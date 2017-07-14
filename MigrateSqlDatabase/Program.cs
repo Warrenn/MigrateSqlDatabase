@@ -70,6 +70,7 @@ namespace MigrateSqlDatabase
         private static void MigrateAssembly(string assemblyFile, string connectionString)
         {
             Console.WriteLine($"Loading assembly {assemblyFile}");
+            AppDomain.CurrentDomain.Load(File.ReadAllBytes(assemblyFile));
             var assembly = Assembly.LoadFile(assemblyFile);
             var contextTypes =
                 GetTypes(assembly)
