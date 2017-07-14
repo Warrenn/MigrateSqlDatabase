@@ -27,18 +27,23 @@ namespace MigrateSqlDatabase
                 Environment.Exit(-1);
             }
 
-            Configuration config;
+            Configuration config = null;
 
             if (string.IsNullOrEmpty(options.ConfigFile) || !File.Exists(options.ConfigFile))
             {
-                Console.WriteLine($"Warning the config file {options.ConfigFile} is invalid loading file from library");
+                Console.WriteLine($"Warning the config file {options.ConfigFile} is invalid loading config from library");
                 config = ConfigurationManager.OpenExeConfiguration(options.Libary);
             }
-            else
+            if (Path.GetExtension(options.ConfigFile) == ".config")
+            {
+                var fileMap = new ExeConfigurationFileMap {ExeConfigFilename = options.ConfigFile};
+                config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
+            }
+            if (config == null)
             {
                 config = ConfigurationManager.OpenExeConfiguration(options.ConfigFile);
             }
-            
+
             config.SaveAs(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
             ConfigurationManager.RefreshSection("connectionStrings");
 
