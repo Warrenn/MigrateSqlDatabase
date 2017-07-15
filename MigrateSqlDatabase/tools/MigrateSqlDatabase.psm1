@@ -173,7 +173,7 @@ function Update-DatabaseSchemaFromProject
 	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(“msbuild.exe”, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
 	. $build $dte.Solution.FullName /t:Build
 
-	if([System.String]::IsNullOrEmpty() -or (-not (Test-Path $SqlCommandVarsFile))){
+	if([System.String]::IsNullOrEmpty($SqlCommandVarsFile) -or (-not (Test-Path $SqlCommandVarsFile))){
 		. $build "$($project.FullName)" /t:Deploy /p:DeploymentConfigurationFile="$($PublishConfig)" /p:UseSandboxSettings=false
 	}
 	else{
