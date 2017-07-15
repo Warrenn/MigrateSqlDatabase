@@ -100,7 +100,7 @@ namespace MigrateSqlDatabase
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Console.Error.WriteLine(e);
+            Console.Error.WriteLine((Exception)e.ExceptionObject);
             Environment.Exit(-1);
         }
     }
