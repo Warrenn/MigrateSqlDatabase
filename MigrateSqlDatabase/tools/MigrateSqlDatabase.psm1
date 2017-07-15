@@ -129,7 +129,7 @@ function Update-DatabaseFromDbContextLibrary
 		$forceOption = " -f"
 	}
 
-	$cmd = "$($migrateExe) -l `"$($target)`" $($configOption) $($forceOption)"
+	$cmd = "& `"$($migrateExe)`" -l `"$($target)`" $($configOption) $($forceOption)"
 	iex $cmd
 }
 
@@ -187,7 +187,7 @@ function Update-DatabaseSchemaFromProject
 		$sqlCommandVarsOption = " /p:SqlCommandVarsFile=`"$($SqlCommandVarsFile)`""
 	}
 	
-	$cmd = "$($build) `"$($project.FullName)`" /t:Deploy /p:DeploymentConfigurationFile=`"$($PublishConfig)`" /p:UseSandboxSettings=false $($sqlCommandVarsOption)"
+	$cmd = "& `"$($build)`" `"$($project.FullName)`" /t:Deploy /p:DeploymentConfigurationFile=`"$($PublishConfig)`" /p:UseSandboxSettings=false $($sqlCommandVarsOption)"
 	iex $cmd
 }
 
