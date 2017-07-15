@@ -11,6 +11,9 @@ namespace MigrateSqlDatabase
         [Option('c', "config", HelpText = "The configuration file used to get the connection strings for the DbContext objects if this is missing or invalid the default config file will be the library name ending in '.config'")]
         public string ConfigFile { get; set; }
 
+        [Option('f', "force", HelpText = "Allow data loss to occur")]
+        public bool Force { get; set; }
+
         [HelpOption]
         public string GetUsage()
         {

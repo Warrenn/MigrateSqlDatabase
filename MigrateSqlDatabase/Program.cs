@@ -36,7 +36,7 @@ namespace MigrateSqlDatabase
             }
             if (Path.GetExtension(options.ConfigFile) == ".config")
             {
-                var fileMap = new ExeConfigurationFileMap {ExeConfigFilename = options.ConfigFile};
+                var fileMap = new ExeConfigurationFileMap { ExeConfigFilename = options.ConfigFile };
                 config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
             }
             if (config == null)
@@ -47,7 +47,7 @@ namespace MigrateSqlDatabase
             config.SaveAs(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
             ConfigurationManager.RefreshSection("connectionStrings");
 
-            MigrateAssembly(options.Libary);
+            MigrateAssembly(options.Libary, options.Force);
             Console.WriteLine("Migration Complete");
             Environment.Exit(0);
         }
@@ -64,18 +64,24 @@ namespace MigrateSqlDatabase
             }
         }
 
-        private static void SetInitializerGeneric(Type type)
+        private static void SetInitializerGeneric(Type type, bool dataloss)
         {
-            InitalizeMethod.MakeGenericMethod(type).Invoke(null, null);
+            InitalizeMethod.MakeGenericMethod(type).Invoke(null, new object[] { dataloss });
         }
 
-        private static void SetInitializer<T>() where T : DbContext
+        private static void SetInitializer<T>(bool dataloss) where T : DbContext
         {
+            if (dataloss)
+            {
+                Database.SetInitializer(
+                    new MigrateDatabaseToLatestVersion<T, AutomaticMigrationsWithDataLossConfiguration<T>>());
+                return;
+            }
             Database.SetInitializer(
                 new MigrateDatabaseToLatestVersion<T, AutomaticMigrationsExistingDbConfiguration<T>>());
         }
 
-        private static void MigrateAssembly(string assemblyFile)
+        private static void MigrateAssembly(string assemblyFile, bool dataloss)
         {
             Console.WriteLine($"Loading assembly {assemblyFile}");
 
@@ -89,7 +95,7 @@ namespace MigrateSqlDatabase
             foreach (var type in contextTypes)
             {
                 Console.WriteLine($"Initializing {type.FullName}");
-                SetInitializerGeneric(type);
+                SetInitializerGeneric(type, dataloss);
                 using (var dbContext = (DbContext)Activator.CreateInstance(type))
                 {
                     Console.WriteLine($"Migrating {type.FullName} to {dbContext.Database.Connection.ConnectionString}");

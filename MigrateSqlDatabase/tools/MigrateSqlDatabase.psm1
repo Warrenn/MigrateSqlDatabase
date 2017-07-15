@@ -87,7 +87,10 @@ function Update-DatabaseFromDbContextLibrary
         $ProjectName = "",
         [parameter(Mandatory=$false)]
         [alias("c")]
-        $ConfigFileName = ""
+        $ConfigFileName = "",
+        [parameter(Mandatory=$false)]
+        [alias("f")]
+		[switch]$Force = $false
     )
 	
     $project = ($dte.Solution.Projects | ?{$_.Name -eq $ProjectName}) | Select-Object -First 1
@@ -115,13 +118,19 @@ function Update-DatabaseFromDbContextLibrary
 
 	$relative = Join-Path -Path $PSScriptRoot -ChildPath ..\lib\net452
 	$migrateExe = "$(Resolve-Path -Path $relative)\MigrateSqlDatabase.exe"
+	$configOption = ""
+	$forceOption = ""
 
 	if(Test-Path $ConfigFileName){
-		. $migrateExe -l "$($target)" -c "$($ConfigFileName)"
+		$configOption = " -c `"$($ConfigFileName)`""
 	}
-	else{
-		. $migrateExe -l "$($target)" 
+	
+	if($Force){
+		$forceOption = " -f"
 	}
+
+	$cmd = "$($migrateExe) -l `"$($target)`" $($configOption) $($forceOption)"
+	iex $cmd
 }
 
 <#
@@ -163,6 +172,7 @@ function Update-DatabaseSchemaFromProject
 	$solDir = [System.IO.Path]::GetDirectoryName($dte.Solution.FullName)
 	$PublishConfig = iex "`"$PublishConfig`""
 	$SqlCommandVarsFile = iex "`"$SqlCommandVarsFile`""
+	$sqlCommandVarsOption = ""
 
 	if([System.String]::IsNullOrEmpty($PublishConfig) -or (-not (Test-Path $PublishConfig))){
 		Write-Error "The publish config file $($PublishConfig) is missing but is requied"
@@ -174,11 +184,11 @@ function Update-DatabaseSchemaFromProject
 	. $build $dte.Solution.FullName /t:Build
 
 	if([System.String]::IsNullOrEmpty($SqlCommandVarsFile) -or (-not (Test-Path $SqlCommandVarsFile))){
-		. $build "$($project.FullName)" /t:Deploy /p:DeploymentConfigurationFile="$($PublishConfig)" /p:UseSandboxSettings=false
+		$sqlCommandVarsOption = " /p:SqlCommandVarsFile=`"$($SqlCommandVarsFile)`""
 	}
-	else{
-		. $build "$($project.FullName)" /t:Deploy /p:DeploymentConfigurationFile="$($PublishConfig)" /p:UseSandboxSettings=false /p:SqlCommandVarsFile="$($SqlCommandVarsFile)"
-	}
+	
+	$cmd = "$($build) `"$($project.FullName)`" /t:Deploy /p:DeploymentConfigurationFile=`"$($PublishConfig)`" /p:UseSandboxSettings=false $($sqlCommandVarsOption)"
+	iex $cmd
 }
 
 Export-ModuleMember @( 'Update-ProjectSchemaFromDatabase', 'Update-DatabaseFromDbContextLibrary', 'Update-DatabaseSchemaFromProject' )

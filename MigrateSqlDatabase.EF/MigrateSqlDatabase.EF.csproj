@@ -47,7 +47,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AutomaticMigrationsExistingDbConfiguration.cs" />
+    <Compile Include="AutomaticMigrationsExistingDbConfiguration - Copy.cs" />
+    <Compile Include="AutomaticMigrationsWithDataLossConfiguration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SqlServerMigrationExistingDbSqlGenerator.cs" />
   </ItemGroup>
