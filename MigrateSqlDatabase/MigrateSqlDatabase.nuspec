@@ -1,16 +1,18 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <metadata>
-        <id>MigrateSqlDatabase</id>
-        <version>$version$</version>
-        <title>MigrateSqlDatabase</title>
-        <authors>Warrenn Enslin</authors>
-        <owners>Warrenn Enslin</owners>
-        <requireLicenseAcceptance>false</requireLicenseAcceptance>
-        <developmentDependency>true</developmentDependency>
-        <description>Migrate models for DbContext classes in assembly to specified sql sever database</description>
-    </metadata>
-    <files>
-        <file src="tools\**" target="tools" />
-    </files>
+  <metadata>
+    <id>MigrateSqlDatabase</id>
+    <version>$version$</version>
+    <title>MigrateSqlDatabase</title>
+    <authors>Warrenn Enslin</authors>
+    <owners>Warrenn Enslin</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <developmentDependency>true</developmentDependency>
+    <description>Migrate models for DbContext classes in assembly to specified sql sever database</description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+    <file src="bin\Debug\*.dll" target="lib\net452" />
+    <file src="bin\Debug\*.pdb" target="lib\net452" />
+  </files>
 </package>
