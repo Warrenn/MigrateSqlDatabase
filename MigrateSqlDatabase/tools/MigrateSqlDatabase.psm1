@@ -11,7 +11,7 @@ function Update-ProjectSchemaFromDatabase
         [parameter(Mandatory=$false)]
         [alias("p")]
         $projectName = "",
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory=$false)]
         [alias("c")]
         $scmpFileName = ""
     )
