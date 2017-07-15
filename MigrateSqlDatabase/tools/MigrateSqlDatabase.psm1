@@ -10,16 +10,19 @@ function Update-ProjectSchemaFromDatabase
     param(
         [parameter(Mandatory=$false)]
         [alias("p")]
-        $projectName = "",
+        $ProjectName = "",
         [parameter(Mandatory=$false)]
         [alias("c")]
-        $scmpFileName = ""
+        $ScmpFileName = "",
+        [parameter(Mandatory=$false)]
+        [alias("r")]
+        $RetryCount = 10
     )
 	
-    $project = ($dte.Solution.Projects | ?{$_.Name -eq $projectName}) | Select-Object -First 1
+    $project = ($dte.Solution.Projects | ?{$_.Name -eq $ProjectName}) | Select-Object -First 1
 
 	if($project -eq $null){
-		Write-Warning "Project $($projectName) not found using currently selected project"
+		Write-Warning "Project $($ProjectName) not found using currently selected project"
 		$project = Get-Project
 	}
 
@@ -32,21 +35,21 @@ function Update-ProjectSchemaFromDatabase
     $projItems = $project.ProjectItems
     $projDir = [System.IO.Path]::GetDirectoryName($project.FullName)
 	$solDir = [System.IO.Path]::GetDirectoryName($dte.Solution.FullName)
-	$scmpFileName = iex "`"$scmpFileName`""
+	$ScmpFileName = iex "`"$ScmpFileName`""
 
-	if(([System.String]::IsNullOrEmpty($scmpFileName)) -or (-not (Test-Path $scmpFileName))){
+	if(([System.String]::IsNullOrEmpty($ScmpFileName)) -or (-not (Test-Path $ScmpFileName))){
 		$scmpItem = $project.ProjectItems | ?{($_.Properties -ne $null) -and ([System.IO.Path]::GetExtension($_.Properties.Item("FullPath").Value) -eq ".scmp")} | Select-Object -First 1
-		$scmpFileName = $scmpItem.Properties.Item("FullPath").Value
+		$ScmpFileName = $scmpItem.Properties.Item("FullPath").Value
 	}
 
-	if(-not (Test-Path $scmpFileName)){
-		Write-Error "Schema compare file $($scmpFileName) not found"
+	if(-not (Test-Path $ScmpFileName)){
+		Write-Error "Schema compare file $($ScmpFileName) not found"
 		Exit-PSSession -1
 		Exit
 	}
 	
-	Write-Output "Opening schema compare file $($scmpFileName)..."
-	$dte.ExecuteCommand("File.OpenFile",$scmpFileName)
+	Write-Output "Opening schema compare file $($ScmpFileName)..."
+	$dte.ExecuteCommand("File.OpenFile",$ScmpFileName)
 
 	Write-Host "Comparing items..."
 	$dte.ExecuteCommand("SQL.SSDTSchemaCompareCompare")
@@ -57,19 +60,16 @@ function Update-ProjectSchemaFromDatabase
 	do{
 		try
 		{
-			Write-Host $dte.Mode
-
 			$dte.ExecuteCommand("SQL.SSDTSchemaCompareWriteUpdates")
 			$done = $true
 		}
 		catch	
 		{
-			$error[0]
 			$tries = $tries + 1
 			Start-Sleep -s 2
 		}
 	}
-	until($done -or ($tries -gt 10))
+	until($done -or ($tries -gt $RetryCount))
 }
 
 <#
@@ -84,16 +84,16 @@ function Update-DatabaseFromDbContextLibrary
     param(
         [parameter(Mandatory=$false)]
         [alias("p")]
-        $projectName = "",
+        $ProjectName = "",
         [parameter(Mandatory=$false)]
         [alias("c")]
-        $configFileName = ""
+        $ConfigFileName = ""
     )
 	
-    $project = ($dte.Solution.Projects | ?{$_.Name -eq $projectName}) | Select-Object -First 1
+    $project = ($dte.Solution.Projects | ?{$_.Name -eq $ProjectName}) | Select-Object -First 1
 
 	if($project -eq $null){
-		Write-Warning "Project $($projectName) not found using currently selected project"
+		Write-Warning "Project $($ProjectName) not found using currently selected project"
 		$project = Get-Project
 	}
 
@@ -104,10 +104,10 @@ function Update-DatabaseFromDbContextLibrary
 	$outputFileName = $project.Properties.Item("OutputFileName").Value
 	$targetPath = "$($projDir)\$($outputPath)"
 	$target = "$($targetPath)$($outputFileName)"
-	$configFileName = iex "`"$configFileName`""
+	$ConfigFileName = iex "`"$ConfigFileName`""
 
-	if([System.String]::IsNullOrEmpty($configFileName) -or (-not (Test-Path $configFileName))){
-		$configFileName = "$($target).config"
+	if([System.String]::IsNullOrEmpty($ConfigFileName) -or (-not (Test-Path $ConfigFileName))){
+		$ConfigFileName = "$($target).config"
 	}
 
 	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(“msbuild.exe”, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
@@ -116,8 +116,8 @@ function Update-DatabaseFromDbContextLibrary
 	$relative = Join-Path -Path $PSScriptRoot -ChildPath ..\lib\net452
 	$migrateExe = "$(Resolve-Path -Path $relative)\MigrateSqlDatabase.exe"
 
-	if(Test-Path $configFileName){
-		. $migrateExe -l "$($target)" -c "$($configFileName)"
+	if(Test-Path $ConfigFileName){
+		. $migrateExe -l "$($target)" -c "$($ConfigFileName)"
 	}
 	else{
 		. $migrateExe -l "$($target)" 
@@ -136,16 +136,19 @@ function Update-DatabaseSchemaFromProject
     param(
         [parameter(Mandatory=$false)]
         [alias("p")]
-        $projectName = "",
+        $ProjectName = "",
         [parameter(Mandatory=$true)]
         [alias("c")]
-        $publishConfig = ""
+        $PublishConfig = "",
+        [parameter(Mandatory=$false)]
+        [alias("v")]
+        $SqlCommandVarsFile = ""
     )
 	
-    $project = ($dte.Solution.Projects | ?{$_.Name -eq $projectName}) | Select-Object -First 1
+    $project = ($dte.Solution.Projects | ?{$_.Name -eq $ProjectName}) | Select-Object -First 1
 
 	if($project -eq $null){
-		Write-Warning "Project $($projectName) not found using currently selected project"
+		Write-Warning "Project $($ProjectName) not found using currently selected project"
 		$project = Get-Project
 	}
 
@@ -158,17 +161,24 @@ function Update-DatabaseSchemaFromProject
     $projItems = $project.ProjectItems
     $projDir = [System.IO.Path]::GetDirectoryName($project.FullName)
 	$solDir = [System.IO.Path]::GetDirectoryName($dte.Solution.FullName)
-	$publishConfig = iex "`"$publishConfig`""
+	$PublishConfig = iex "`"$PublishConfig`""
+	$SqlCommandVarsFile = iex "`"$SqlCommandVarsFile`""
 
-	if([System.String]::IsNullOrEmpty($publishConfig) -or (-not (Test-Path $publishConfig))){
-		Write-Error "The publish config file $($publishConfig) is missing but is requied"
+	if([System.String]::IsNullOrEmpty($PublishConfig) -or (-not (Test-Path $PublishConfig))){
+		Write-Error "The publish config file $($PublishConfig) is missing but is requied"
 		Exit-PSSession -1
 		Exit
 	}
 
 	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(“msbuild.exe”, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
 	. $build $dte.Solution.FullName /t:Build
-	. $build "$($project.FullName)" /t:Deploy /p:DeploymentConfigurationFile="$($publishConfig)" /p:UseSandboxSettings=false 
+
+	if([System.String]::IsNullOrEmpty() -or (-not (Test-Path $SqlCommandVarsFile))){
+		. $build "$($project.FullName)" /t:Deploy /p:DeploymentConfigurationFile="$($PublishConfig)" /p:UseSandboxSettings=false
+	}
+	else{
+		. $build "$($project.FullName)" /t:Deploy /p:DeploymentConfigurationFile="$($PublishConfig)" /p:UseSandboxSettings=false /p:SqlCommandVarsFile="$($SqlCommandVarsFile)"
+	}
 }
 
 Export-ModuleMember @( 'Update-ProjectSchemaFromDatabase', 'Update-DatabaseFromDbContextLibrary', 'Update-DatabaseSchemaFromProject' )
