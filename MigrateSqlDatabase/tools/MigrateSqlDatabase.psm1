@@ -32,7 +32,7 @@ function Update-ProjectSchemaFromDatabase
         [parameter(Mandatory=$false)]
         [alias("r")]
         $RetryCount = 10
-    )k
+    )
 	
     $project = GetProject($ProjectName)
 
