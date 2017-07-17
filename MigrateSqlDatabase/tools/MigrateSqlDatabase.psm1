@@ -212,7 +212,7 @@ function Update-DatabaseSchemaFromProject
 
 	if(-not [System.String]::IsNullOrEmpty($TargetConnectionString)){
 		$TargetConnectionString = $TargetConnectionString.Replace(";", "%3B")
-		$TargetConnectionStringOption = " /p:TargetConnectionString=`"`$($TargetConnectionString)`""
+		$TargetConnectionStringOption = " /p:TargetConnectionString=`"$($TargetConnectionString)`""
 	}
 	
 	$cmd = "& `"$($build)`" `"$($project.FullName)`" /t:Deploy /p:DeploymentConfigurationFile=`"$($PublishConfig)`" /p:UseSandboxSettings=false $($sqlCommandVarsOption) $($TargetConnectionStringOption)"
