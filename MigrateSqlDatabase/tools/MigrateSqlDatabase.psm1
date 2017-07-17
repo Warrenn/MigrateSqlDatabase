@@ -109,7 +109,7 @@ function Update-DatabaseFromDbContextLibrary
     $project = $null
 
 	if(-not [string]::IsNullOrEmpty($ProjectName)){
-		Get-Project -All $ProjectName
+		Get-Project -Name $ProjectName
 	}
 
 	if($project -eq $null){
