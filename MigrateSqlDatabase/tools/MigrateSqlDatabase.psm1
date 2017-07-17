@@ -1,3 +1,18 @@
+function GetProject($projectName)
+{
+	$solutionPath = [System.IO.Path]::GetDirectoryName($dte.Solution.FullName)
+	Get-Content $dte.Solution.FullName |
+	  Select-String 'Project\(' |
+		ForEach-Object {
+		  $projectParts = $_ -Split '[,=]' | ForEach-Object { $_.Trim('[ "{}]') };
+		  New-Object PSObject -Property @{
+			Name = $projectParts[1];
+			FullName = Join-Path $solutionPath $projectParts[2];
+			Guid = $projectParts[3]
+		  }
+		} | ?{$_.Name -eq $projectName} 
+}
+
 <#
 .SYNOPSIS
 
@@ -17,9 +32,9 @@ function Update-ProjectSchemaFromDatabase
         [parameter(Mandatory=$false)]
         [alias("r")]
         $RetryCount = 10
-    )
+    )k
 	
-    $project = ($dte.Solution.Projects | ?{$_.Name -eq $ProjectName}) | Select-Object -First 1
+    $project = GetProject($ProjectName)
 
 	if($project -eq $null){
 		Write-Warning "Project $($ProjectName) not found using currently selected project"
@@ -93,7 +108,11 @@ function Update-DatabaseFromDbContextLibrary
 		[switch]$Force = $false
     )
 	
-    $project = ($dte.Solution.Projects | ?{$_.Name -eq $ProjectName}) | Select-Object -First 1
+    $project = $null
+
+	if(-not [string]::IsNullOrEmpty($ProjectName)){
+		Get-Project -All $ProjectName
+	}
 
 	if($project -eq $null){
 		Write-Warning "Project $($ProjectName) not found using currently selected project"
@@ -113,7 +132,7 @@ function Update-DatabaseFromDbContextLibrary
 		$ConfigFileName = "$($target).config"
 	}
 
-	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(“msbuild.exe”, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
+	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(â€œmsbuild.exeâ€, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
 	. $build $dte.Solution.FullName /t:Build
 
 	$relative = Join-Path -Path $PSScriptRoot -ChildPath ..\lib\net452
@@ -153,14 +172,16 @@ function Update-DatabaseSchemaFromProject
         [alias("v")]
         $SqlCommandVarsFile = ""
     )
-	
-    $project = ($dte.Solution.Projects | ?{$_.Name -eq $ProjectName}) | Select-Object -First 1
+		Write-Output "looking for $($project.FullName)"
 
+    $project = GetProject($ProjectName)
+	
 	if($project -eq $null){
 		Write-Warning "Project $($ProjectName) not found using currently selected project"
 		$project = Get-Project
 	}
 
+	Write-Output $project
 	if(-not([System.IO.Path]::GetExtension($project.FullName) -eq ".sqlproj")){
 		Write-Error "The Project $($project.FullName) is not a valid project file"
 		Exit-PSSession -1
@@ -180,7 +201,7 @@ function Update-DatabaseSchemaFromProject
 		Exit
 	}
 
-	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(“msbuild.exe”, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
+	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(â€œmsbuild.exeâ€, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
 	. $build $dte.Solution.FullName /t:Build
 
 	if([System.String]::IsNullOrEmpty($SqlCommandVarsFile) -or (-not (Test-Path $SqlCommandVarsFile))){
