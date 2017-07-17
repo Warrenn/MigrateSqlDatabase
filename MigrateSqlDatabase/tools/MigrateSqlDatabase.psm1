@@ -43,7 +43,6 @@ function Update-ProjectSchemaFromDatabase
 
 	if(-not([System.IO.Path]::GetExtension($project.FullName) -eq ".sqlproj")){
 		Write-Error "The Project $($project.FullName) is not a valid project file"
-		Exit-PSSession -1
 		Exit
 	}
 
@@ -59,7 +58,6 @@ function Update-ProjectSchemaFromDatabase
 
 	if(-not (Test-Path $ScmpFileName)){
 		Write-Error "Schema compare file $($ScmpFileName) not found"
-		Exit-PSSession -1
 		Exit
 	}
 	
@@ -175,8 +173,6 @@ function Update-DatabaseSchemaFromProject
         [alias("t")]
         $TargetConnectionString = ""
     )
-		Write-Output "looking for $($project.FullName)"
-
     $project = GetProject($ProjectName)
 	
 	if($project -eq $null){
