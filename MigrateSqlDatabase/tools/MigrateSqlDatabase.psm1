@@ -132,7 +132,7 @@ function Update-DatabaseFromDbContextLibrary
 		$ConfigFileName = "$($target).config"
 	}
 
-	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(“msbuild.exe”, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
+	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile("msbuild.exe", [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
 	. $build $dte.Solution.FullName /t:Build
 
 	$relative = Join-Path -Path $PSScriptRoot -ChildPath ..\lib\net452
@@ -170,7 +170,10 @@ function Update-DatabaseSchemaFromProject
         $PublishConfig = "",
         [parameter(Mandatory=$false)]
         [alias("v")]
-        $SqlCommandVarsFile = ""
+        $SqlCommandVarsFile = "",
+        [parameter(Mandatory=$false)]
+        [alias("t")]
+        $TargetConnectionString = ""
     )
 		Write-Output "looking for $($project.FullName)"
 
@@ -184,7 +187,6 @@ function Update-DatabaseSchemaFromProject
 	Write-Output $project
 	if(-not([System.IO.Path]::GetExtension($project.FullName) -eq ".sqlproj")){
 		Write-Error "The Project $($project.FullName) is not a valid project file"
-		Exit-PSSession -1
 		Exit
 	}
 
@@ -194,21 +196,26 @@ function Update-DatabaseSchemaFromProject
 	$PublishConfig = iex "`"$PublishConfig`""
 	$SqlCommandVarsFile = iex "`"$SqlCommandVarsFile`""
 	$sqlCommandVarsOption = ""
+	$TargetConnectionStringOption = ""
 
 	if([System.String]::IsNullOrEmpty($PublishConfig) -or (-not (Test-Path $PublishConfig))){
 		Write-Error "The publish config file $($PublishConfig) is missing but is requied"
-		Exit-PSSession -1
 		Exit
 	}
 
-	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile(“msbuild.exe”, [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
+	$build = [Microsoft.Build.Utilities.ToolLocationHelper]::GetPathToBuildToolsFile("msbuild.exe", [Microsoft.Build.Utilities.ToolLocationHelper]::CurrentToolsVersion,[Microsoft.Build.Utilities.DotNetFrameworkArchitecture]::Bitness64)
 	. $build $dte.Solution.FullName /t:Build
 
-	if([System.String]::IsNullOrEmpty($SqlCommandVarsFile) -or (-not (Test-Path $SqlCommandVarsFile))){
+	if((-not [System.String]::IsNullOrEmpty($SqlCommandVarsFile)) -and (Test-Path $SqlCommandVarsFile)){
 		$sqlCommandVarsOption = " /p:SqlCommandVarsFile=`"$($SqlCommandVarsFile)`""
 	}
+
+	if(-not [System.String]::IsNullOrEmpty($TargetConnectionString)){
+		$TargetConnectionString = $TargetConnectionString.Replace(";", "%3B")
+		$TargetConnectionStringOption = " /p:TargetConnectionString=`"`$($TargetConnectionString)`""
+	}
 	
-	$cmd = "& `"$($build)`" `"$($project.FullName)`" /t:Deploy /p:DeploymentConfigurationFile=`"$($PublishConfig)`" /p:UseSandboxSettings=false $($sqlCommandVarsOption)"
+	$cmd = "& `"$($build)`" `"$($project.FullName)`" /t:Deploy /p:DeploymentConfigurationFile=`"$($PublishConfig)`" /p:UseSandboxSettings=false $($sqlCommandVarsOption) $($TargetConnectionStringOption)"
 	iex $cmd
 }
 

@@ -75,7 +75,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="MigrateSqlDatabase.nuspec" />
+    <None Include="MigrateSqlDatabase.nuspec">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
     <None Include="tools\MigrateSqlDatabase.psd1" />
     <None Include="tools\MigrateSqlDatabase.psm1" />
